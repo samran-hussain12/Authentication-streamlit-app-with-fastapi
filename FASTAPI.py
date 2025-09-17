@@ -1,7 +1,5 @@
 import streamlit as st
 import requests
-from streamlit_option_menu import option_menu
-import time
 
 API_URL = "http://127.0.0.1:8000"
 
@@ -12,53 +10,60 @@ if "token" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
 
-# Sidebar menu
-with st.sidebar:
-    choice = option_menu(
-        "Navigation",
-        ["Home", "Signup", "Login", "Chat", "Logout"],
-        icons=["house", "person-plus", "box-arrow-in-right", "chat-dots", "box-arrow-right"],
-        menu_icon="list",
-        default_index=0,
-    )
+# Sidebar navigation (only main pages)
+menu = st.sidebar.radio("Navigation", ["Home", "Auth", "Chat", "Logout"])
 
-# Home Page
-if choice == "Home":
+# Home
+if menu == "Home":
     st.title("Welcome to Auth Chat App 🤖")
-    st.write("Login or Signup to continue.")
+    st.write("Go to Auth tab to Login / Signup / Reset password.")
 
-# Signup Page
-elif choice == "Signup":
-    st.subheader("Create New Account")
-    username = st.text_input("Username", key="signup_user")
-    password = st.text_input("Password", type="password", key="signup_pass")
-    if st.button("Signup"):
-        res = requests.post(f"{API_URL}/signup", json={"username": username, "password": password})
-        if res.status_code == 200:
-            st.success("Signup successful! Go to Login.")
-        else:
-            st.error(res.json()["detail"])
+# Auth Page
+elif menu == "Auth":
+    st.title("Authentication 🔑")
+    tab1, tab2, tab3 = st.tabs(["Login", "Signup", "Forgot Password"])
 
-# Login Page
-elif choice == "Login":
-    st.subheader("Login to Your Account")
-    username = st.text_input("Username", key="login_user")
-    password = st.text_input("Password", type="password", key="login_pass")
-    if st.button("Login"):
-        res = requests.post(f"{API_URL}/login", json={"username": username, "password": password})
-        if res.status_code == 200:
-            st.session_state["token"] = res.json()["access_token"]
-            st.success("Login successful!")
-        else:
-            st.error(res.json()["detail"])
+    # --- Login Tab ---
+    with tab1:
+        username = st.text_input("Username", key="login_user")
+        password = st.text_input("Password", type="password", key="login_pass")
+        if st.button("Login"):
+            res = requests.post(f"{API_URL}/login", json={"username": username, "password": password})
+            if res.status_code == 200:
+                st.session_state["token"] = res.json()["access_token"]
+                st.success("Login successful!")
+            else:
+                st.error(res.json()["detail"])
+
+    # --- Signup Tab ---
+    with tab2:
+        username = st.text_input("New Username", key="signup_user")
+        password = st.text_input("New Password", type="password", key="signup_pass")
+        if st.button("Signup"):
+            res = requests.post(f"{API_URL}/signup", json={"username": username, "password": password})
+            if res.status_code == 200:
+                st.success("Signup successful! Go to Login.")
+            else:
+                st.error(res.json()["detail"])
+
+    # --- Forgot Password Tab ---
+    with tab3:
+        username = st.text_input("Username", key="fp_user")
+        new_password = st.text_input("New Password", type="password", key="fp_pass")
+        if st.button("Reset Password"):
+            res = requests.post(f"{API_URL}/forgot_password", json={"username": username, "password": new_password})
+            if res.status_code == 200:
+                st.success("Password reset successful! Please login again.")
+            else:
+                st.error(res.json()["detail"])
 
 # Chat Page
-elif choice == "Chat":
+elif menu == "Chat":
     if st.session_state["token"]:
-        st.subheader("Chat with Bot 🤖")
+        st.title("Chat with Bot 🤖")
         user_input = st.text_input("You:", key="chat_input")
         if st.button("Send"):
-            bot_reply = f"Echo: {user_input}"  # Dummy bot logic
+            bot_reply = f"Echo: {user_input}"  # Dummy bot
             st.session_state["chat_history"].append(("You", user_input))
             st.session_state["chat_history"].append(("Bot", bot_reply))
 
@@ -68,6 +73,6 @@ elif choice == "Chat":
         st.warning("Please login first.")
 
 # Logout Page
-elif choice == "Logout":
+elif menu == "Logout":
     st.session_state["token"] = None
     st.success("Logged out successfully!")
